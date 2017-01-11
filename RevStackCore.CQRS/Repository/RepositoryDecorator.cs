@@ -1,6 +1,6 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using RevStackCore.CQRS.Domain;
+
 
 namespace RevStackCore.CQRS.Repository
 {
@@ -12,23 +12,13 @@ namespace RevStackCore.CQRS.Repository
         {
             Repository = repository;
         }
-
-        public virtual TAggregate GetById<TAggregate>(Guid id) where TAggregate : AggregateBase
-        {
-            return Repository.GetById<TAggregate>(id);
-        }
-
-        public virtual async Task<TAggregate> GetByIdAsync<TAggregate>(Guid id) where TAggregate : AggregateBase
+        
+        public virtual async Task<TAggregate> GetByIdAsync<TAggregate>(int id) where TAggregate : AggregateRoot
         {
             return await Repository.GetByIdAsync<TAggregate>(id);
         }
-
-        public virtual void Save<TAggregate>(TAggregate aggregate) where TAggregate : AggregateBase
-        {
-            Repository.Save(aggregate);
-        }
-
-        public virtual async Task SaveAsync<TAggregate>(TAggregate aggregate) where TAggregate : AggregateBase
+        
+        public virtual async Task SaveAsync<TAggregate>(TAggregate aggregate) where TAggregate : AggregateRoot
         {
             await Repository.SaveAsync(aggregate);
         }

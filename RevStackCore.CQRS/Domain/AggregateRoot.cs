@@ -1,23 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using RevStackCore.CQRS.Event;
 using RevStackCore.CQRS.Util;
 
+
 namespace RevStackCore.CQRS.Domain
 {
-    public class AggregateBase : IAggregate
+    public class AggregateRoot : IAggregate
     {
         private readonly List<IEvent> _uncommittedChanges;
 
-        public AggregateBase()
+        public AggregateRoot()
         {
             _uncommittedChanges = new List<IEvent>();
         }
 
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public int Version { get; protected set; }
-        public int EventVersion { get; protected set; }
 
         public bool HasUncommittedChanges()
         {
@@ -39,37 +38,35 @@ namespace RevStackCore.CQRS.Domain
         {
             lock (_uncommittedChanges)
             {
+                Version = Version + _uncommittedChanges.Count;
                 _uncommittedChanges.Clear();
             }
         }
 
         public void LoadsFromHistory(IEnumerable<IEvent> history)
         {
-            foreach (var e in history) ApplyEvent(e, false);
+            foreach (var e in history) ApplyChange(e, false);
             Version = history.Last().Version;
-            EventVersion = Version;
         }
 
-        protected void ApplyEvent(IEvent @event)
+        protected void ApplyChange(IEvent @event)
         {
-            ApplyEvent(@event, true);
+            ApplyChange(@event, true);
         }
 
-        private void ApplyEvent(IEvent @event, bool isNew)
+        private void ApplyChange(IEvent @event, bool isNew)
         {
-            @event.InvokeOnAggregate(this, "Handle");
-
-            Version++;
-
-            if (isNew)
+            lock (_uncommittedChanges)
             {
-                lock (_uncommittedChanges)
+                @event.InvokeOnAggregate(this, "Handle");
+
+                if (isNew)
                 {
                     _uncommittedChanges.Add(@event);
                 }
+
+                Version++;
             }
-
-
         }
     }
 }

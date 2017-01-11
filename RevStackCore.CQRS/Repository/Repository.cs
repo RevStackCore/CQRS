@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using RevStackCore.CQRS.Domain;
 using RevStackCore.CQRS.Event;
-using RevStackCore.CQRS.Messaging;
 using RevStackCore.CQRS.Snapshot;
 using RevStackCore.CQRS.Storage;
 using RevStackCore.CQRS.Util;
@@ -14,44 +13,39 @@ namespace RevStackCore.CQRS.Repository
 {
     public class Repository : IRepository
     {
-        public IEventStore EventStore { get; }
-        public ISnapshotStore SnapshotStore { get; }
-        public IEventPublisher EventPublisher { get; }
+        private readonly IEventStore _eventStore;
+        private readonly ISnapshotStore _snapshotStore;
 
-        public Repository(IEventStore eventStore, ISnapshotStore snapshotStore, IEventPublisher eventPublisher)
+        public Repository(IEventStore eventStore, ISnapshotStore snapshotStore)
         {
-            EventStore = eventStore;
-            SnapshotStore = snapshotStore;
-            EventPublisher = eventPublisher;
+            _eventStore = eventStore;
+            _snapshotStore = snapshotStore;
         }
 
-        public T GetById<T>(Guid id) where T : AggregateBase
-        {
-            return Task.Run(() => GetByIdAsync<T>(id)).Result;
-        }
-
-        public virtual async Task<T> GetByIdAsync<T>(Guid id) where T : AggregateBase
+        public virtual async Task<T> GetByIdAsync<T>(int id) where T : AggregateRoot
         {
             T item = default(T);
 
             var isSnapshottable = typeof(ISnapshottable).GetTypeInfo().IsAssignableFrom(typeof(T));
             Snapshot.Snapshot snapshot = null;
 
-            if ((isSnapshottable) && (SnapshotStore != null))
+            if ((isSnapshottable) && (_snapshotStore != null))
             {
-                snapshot = await SnapshotStore.GetSnapshotAsync(typeof(T), id);
+                snapshot = await _snapshotStore.GetSnapshotAsync(typeof(T), id);
             }
 
             if (snapshot != null)
             {
                 item = ReflectionHelper.CreateInstance<T>();
                 ((ISnapshottable)item).ApplySnapshot(snapshot);
-                var events = await EventStore.GetEventsAsync(typeof(T), id, snapshot.Version + 1, int.MaxValue);
+                //var events = await _eventStore.GetEventsAsync(typeof(T), id, snapshot.Version + 1, int.MaxValue);
+                var events = await _eventStore.GetAsync<T>(id, snapshot.Version + 1);
                 item.LoadsFromHistory(events);
             }
             else
             {
-                var events = (await EventStore.GetEventsAsync(typeof(T), id, 0, int.MaxValue)).ToList();
+                //var events = (await _eventStore.GetEventsAsync(typeof(T), id, 0, int.MaxValue)).ToList();
+                var events = await _eventStore.GetAsync<T>(id, 0);
 
                 if (events.Any())
                 {
@@ -63,12 +57,7 @@ namespace RevStackCore.CQRS.Repository
             return item;
         }
 
-        public void Save<T>(T aggregate) where T : AggregateBase
-        {
-            Task.Run(() => SaveAsync(aggregate));
-        }
-
-        public virtual async Task SaveAsync<T>(T aggregate) where T : AggregateBase
+        public virtual async Task SaveAsync<T>(T aggregate) where T : AggregateRoot
         {
             if (aggregate.HasUncommittedChanges())
             {
@@ -76,10 +65,8 @@ namespace RevStackCore.CQRS.Repository
             }
         }
 
-        private async Task CommitChanges(AggregateBase aggregate)
+        private async Task CommitChanges<T>(T aggregate) where T : AggregateRoot
         {
-            //IEvent item = await EventStore.GetLastEventAsync(aggregate.GetType(), aggregate.Id);
-
             var changesToCommit = aggregate.GetUncommittedChanges().ToList();
 
             foreach (var e in changesToCommit)
@@ -88,31 +75,14 @@ namespace RevStackCore.CQRS.Repository
             }
 
             //CommitAsync events to storage provider
-            await EventStore.CommitChangesAsync(aggregate);
-
-            //Publish to event publisher asynchronously
-            foreach (var e in changesToCommit)
-            {
-                await EventPublisher.PublishAsync(e);
-            }
+            await _eventStore.SaveAsync<T>(aggregate.GetUncommittedChanges());
 
             //If the Aggregate implements snaphottable
             var snapshottable = aggregate as ISnapshottable;
 
-            if ((snapshottable != null) && (SnapshotStore != null))
+            if ((snapshottable != null) && (_snapshotStore != null))
             {
-                await SnapshotStore.SaveSnapshotAsync(aggregate.GetType(), snapshottable.TakeSnapshot());
-                //Every N events we save a snapshot
-                //if ((aggregate.Version >= SnapshotStore.SnapshotFrequency) &&
-                //        (
-                //            (changesToCommit.Count >= SnapshotStore.SnapshotFrequency) ||
-                //            (aggregate.Version % SnapshotStore.SnapshotFrequency < changesToCommit.Count) ||
-                //            (aggregate.Version % SnapshotStore.SnapshotFrequency == 0)
-                //        )
-                //    )
-                //{
-                //    await SnapshotStore.SaveSnapshotAsync(aggregate.GetType(), snapshottable.TakeSnapshot());
-                //}
+                await _snapshotStore.SaveSnapshotAsync(aggregate.GetType(), snapshottable.TakeSnapshot());
             }
 
             aggregate.MarkChangesAsCommitted();

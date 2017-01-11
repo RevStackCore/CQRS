@@ -7,10 +7,10 @@ namespace RevStackCore.CQRS.Command
     {
         public Guid Id { get; private set; }
         public string Name { get; protected set; }
-        public Guid AggregateId { get; }
+        public int AggregateId { get; }
         public int Version { get; private set; }
 
-        public Command(Guid id, Guid aggregateId, int version)
+        public Command(Guid id, int aggregateId, int version)
         {
             Id = id;
             AggregateId = aggregateId;

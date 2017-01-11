@@ -6,6 +6,6 @@ namespace RevStackCore.CQRS.Command
 {
     public interface ICommand : IMessage
     {
-        Guid AggregateId { get; }
+        int AggregateId { get; }
     }
 }

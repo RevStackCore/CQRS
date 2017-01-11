@@ -6,14 +6,15 @@ namespace RevStackCore.CQRS.Snapshot
     public class Snapshot
     {
         public Guid Id { get; set; }
-        public Guid AggregateId { get; set; }
+        public Type AggregateType { get; set; }
+        public int AggregateId { get; set; }
         public int Version { get; set; }
 
         public Snapshot()
         {
         }
 
-        public Snapshot(Guid id, Guid aggregateId, int version) 
+        public Snapshot(Guid id, int aggregateId, int version) 
         {
             Id = id;
             AggregateId = aggregateId;

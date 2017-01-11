@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
-using RevStackCore.CQRS.Event;
 
-namespace RevStackCore.CQRS.EventHandler
+
+namespace RevStackCore.CQRS.Event
 {
     public interface IEventHandler<T> where T : IEvent
     {

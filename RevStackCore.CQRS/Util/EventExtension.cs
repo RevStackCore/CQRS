@@ -8,7 +8,7 @@ namespace RevStackCore.CQRS.Util
 {
     public static class EventExtension
     {
-        public static void InvokeOnAggregate(this IEvent @event, AggregateBase aggregate, string methodName)
+        public static void InvokeOnAggregate(this IEvent @event, AggregateRoot aggregate, string methodName)
         {
             var method = ReflectionHelper.GetMethod(aggregate.GetType(), methodName, new Type[] { @event.GetType() }); //Find the right method
 

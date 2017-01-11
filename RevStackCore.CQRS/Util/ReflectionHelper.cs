@@ -101,9 +101,23 @@ namespace RevStackCore.CQRS.Util
             return t.GetTypeInfo().GetMembers();
         }
 
-        public static T CreateInstance<T>() where T : AggregateBase
+        public static T CreateInstance<T>() where T : AggregateRoot
         {
             return (T)Activator.CreateInstance(typeof(T));
+        }
+
+        public static object CreateInstance(string strFullyQualifiedName)
+        {
+            Type type = Type.GetType(strFullyQualifiedName);
+            if (type != null)
+                return Activator.CreateInstance(type);
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                type = asm.GetType(strFullyQualifiedName);
+                if (type != null)
+                    return Activator.CreateInstance(type);
+            }
+            return null;
         }
     }
 }

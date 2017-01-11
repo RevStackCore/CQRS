@@ -4,19 +4,19 @@ using RevStackCore.CQRS.Exception;
 
 namespace RevStackCore.CQRS.Command
 {
-    public class CommandPublishResponse : ICommandPublishResponse
+    public class CommandResponse
     {
-        public static CommandPublishResponse Ok = new CommandPublishResponse { Success = true };
-        public static CommandPublishResponse Fail = new CommandPublishResponse { Success = false };
+        public static CommandResponse Ok = new CommandResponse { Success = true };
+        public static CommandResponse Fail = new CommandResponse { Success = false };
 
-        public CommandPublishResponse(bool success  = false, Guid aggregateId = default(Guid))
+        public CommandResponse(bool success  = false, int aggregateId = -1)
         {
             Success = success;
             AggregateId = aggregateId;
             Message = String.Empty;
         }
 
-        public CommandPublishResponse(bool success, Guid aggregateId, System.Exception resultException)
+        public CommandResponse(bool success, int aggregateId, System.Exception resultException)
         {
             Success = success;
             AggregateId = aggregateId;
@@ -25,7 +25,7 @@ namespace RevStackCore.CQRS.Command
         }
 
         public bool Success { get; private set; }
-        public Guid AggregateId { get; private set; }
+        public int AggregateId { get; private set; }
         public Guid RequestId { get; set; }
         public string Message { get; set; }
         public System.Exception ResultException { get; }
