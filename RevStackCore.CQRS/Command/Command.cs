@@ -6,7 +6,6 @@ namespace RevStackCore.CQRS.Command
     public class Command : ICommand
     {
         public Guid Id { get; private set; }
-        public string Name { get; protected set; }
         public int AggregateId { get; }
         public int Version { get; private set; }
 

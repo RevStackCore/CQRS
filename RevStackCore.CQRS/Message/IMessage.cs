@@ -9,6 +9,5 @@ namespace RevStackCore.CQRS.Message
         /// Unique message ID
         /// </summary>
         Guid Id { get; }
-        string Name { get; }
     }
 }
